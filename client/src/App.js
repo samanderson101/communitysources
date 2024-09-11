@@ -3,7 +3,8 @@ import { nip19 } from 'nostr-tools';
 import './App.css';
 import Screenshot from './screenshot.png';
 
-const API_URL = process.env.REACT_APP_API_URL || '/api';
+const API_URL = window.REACT_APP_CONFIG.API_URL || '/api';
+const VERSION = window.REACT_APP_CONFIG.VERSION;
 
 const LoadingIndicator = () => (
   <div className="loading-indicator">
