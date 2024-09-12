@@ -92,3 +92,8 @@
 {"error":"InvalidRequest","level":"error","message":"Error fetching Bluesky posts: Input must have the property \"identifier\"","service":"community-sources","stack":"Error: Input must have the property \"identifier\"\n    at ServiceClient.call (/Users/samuelanderson/Community-Sources/server/node_modules/@atproto/api/dist/index.js:7099:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async _AtpAgent.login (/Users/samuelanderson/Community-Sources/server/node_modules/@atproto/api/dist/index.js:14759:19)\n    at async fetchBlueskyPosts (/Users/samuelanderson/Community-Sources/server/src/server.js:103:2)\n    at async Promise.all (index 0)\n    at async /Users/samuelanderson/Community-Sources/server/src/server.js:307:49","status":400,"success":false}
 {"level":"info","message":"Filtered 0 Nostr events","service":"community-sources"}
 {"level":"info","message":"Sending response with 0 Bluesky posts, 0 Nostr posts, and 0 Mastodon posts","service":"community-sources"}
+{"level":"info","message":"Server running on port 3001","service":"community-sources"}
+{"level":"info","message":"Server running on port 3001","service":"community-sources"}
+{"level":"info","message":"Server running on port 3001","service":"community-sources"}
+{"level":"info","message":"Server running on port 3001","service":"community-sources"}
+{"level":"error","message":"Error: ENOENT: no such file or directory, stat '/Users/samuelanderson/Community-Sources/server/src/public/index.html'","service":"community-sources"}
