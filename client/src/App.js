@@ -4,7 +4,6 @@ import './App.css';
 import Screenshot from './screenshot.png';
 
 const API_URL = window.REACT_APP_CONFIG.API_URL || '/api';
-const VERSION = window.REACT_APP_CONFIG.VERSION;
 
 const LoadingIndicator = () => (
   <div className="loading-indicator">
