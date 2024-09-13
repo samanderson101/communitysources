@@ -94,7 +94,7 @@ const App = () => {
       };
       fetchFeed();
     }
-  }, [activeTab, preferredLanguages, currentPage, API_URL]);
+  }, [activeTab, preferredLanguages, currentPage]);
 
   const formatTimeAgo = (dateString) => {
     const date = new Date(dateString);
