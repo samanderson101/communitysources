@@ -1,10 +1,11 @@
+// server/server.js
+
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const { AtpAgent, RichText } = require('@atproto/api');
 const { SimplePool, nip19 } = require('nostr-tools');
-const Mastodon = require('mastodon-api');
 const NodeCache = require('node-cache');
 const rateLimit = require('express-rate-limit');
 const winston = require('winston');
@@ -18,34 +19,35 @@ const logger = winston.createLogger({
   format: winston.format.json(),
   defaultMeta: { service: 'community-sources' },
   transports: [
-	new winston.transports.File({ filename: 'error.log', level: 'error' }),
-	new winston.transports.File({ filename: 'combined.log' })
-  ]
+	new winston.transports.Console({
+	  format: winston.format.simple(),
+	}),
+  ],
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-	format: winston.format.simple()
-  }));
-}
-
 // Middleware
-app.use(cors({ origin: process.env.FRONTEND_URL }));
 app.use(express.json());
+
+// CORS configuration
+if (process.env.NODE_ENV === 'development') {
+  app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' }));
+} else {
+  app.use(cors());
+}
 
 // Rate limiting
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
 });
-app.use("/api/", apiLimiter);
+app.use('/api/', apiLimiter);
 
 // Token bucket for Bluesky rate limiting
 const tokenBucket = {
   tokens: 5,
   lastRefill: Date.now(),
   refillRate: 60000, // 1 token per minute
-  capacity: 5
+  capacity: 5,
 };
 
 function getToken() {
@@ -87,11 +89,11 @@ const nostrSearchPatterns = [
   /imdb\.com|rottentomatoes\.com|netflix\.com|hulu\.com|amazon\.com\/gp\/video\/|play\.max\.com/i,
   /podcasts\.apple\.com|open\.spotify\.com\/episode\/|open\.spotify\.com\/show\//i,
   /spotify\.com\/artist|spotify\.com\/track|spotify\.com\/album|music\.apple\.com|soundcloud\.com/i,
-].map(regex => new RegExp(regex.source, 'i'));
+].map((regex) => new RegExp(regex.source, 'i'));
 
 async function fetchBlueskyPosts(activeTab, preferredLanguages) {
   logger.info('Fetching Bluesky posts for tab:', activeTab);
-  
+
   if (!getToken()) {
 	logger.warn('Rate limit exceeded for Bluesky');
 	return [];
@@ -117,12 +119,12 @@ async function fetchBlueskyPosts(activeTab, preferredLanguages) {
 	  }
 	);
 	const { feed: postsArray } = data;
-	
+
 	const processedPosts = await Promise.all(
 	  postsArray.map(async (item) => {
 		const rt = new RichText({ text: item.post.record.text });
 		await rt.detectFacets(agent);
-	
+
 		let markdown = '';
 		for (const segment of rt.segments()) {
 		  if (segment.isLink()) {
@@ -133,7 +135,7 @@ async function fetchBlueskyPosts(activeTab, preferredLanguages) {
 			markdown += segment.text;
 		  }
 		}
-	
+
 		return {
 		  ...item,
 		  markdown,
@@ -149,7 +151,7 @@ async function fetchBlueskyPosts(activeTab, preferredLanguages) {
 	logger.info(`Processed ${processedPosts.length} Bluesky posts`);
 	return processedPosts;
   } catch (error) {
-	logger.error("Error fetching Bluesky posts:", error);
+	logger.error('Error fetching Bluesky posts:', error);
 	return [];
   }
 }
@@ -175,20 +177,22 @@ async function fetchNostrPosts(activeTab) {
 	'wss://relay.nostr.bg',
 	'wss://relay.current.fyi',
 	'wss://relay.snort.social',
-	'wss://relay.nostr.info'
+	'wss://relay.nostr.info',
   ];
 
   const pool = new SimplePool();
 
   try {
 	const oneWeekAgo = Math.floor(Date.now() / 1000) - 14 * 24 * 60 * 60;
-	
+
 	const events = await new Promise((resolve) => {
 	  let collectedEvents = [];
-	  const sub = pool.sub(relays, [{
-		kinds: [1],
-		since: oneWeekAgo,
-	  }]);
+	  const sub = pool.sub(relays, [
+		{
+		  kinds: [1],
+		  since: oneWeekAgo,
+		},
+	  ]);
 
 	  sub.on('event', (event) => {
 		if (nostrSearchPatterns[activeTab].test(event.content)) {
@@ -202,7 +206,7 @@ async function fetchNostrPosts(activeTab) {
 	  }, 10000); // Wait for 10 seconds to collect events
 	});
 
-	const processedEvents = events.map(event => ({
+	const processedEvents = events.map((event) => ({
 	  id: event.id,
 	  pubkey: event.pubkey,
 	  content: event.content,
@@ -216,7 +220,7 @@ async function fetchNostrPosts(activeTab) {
 	pool.close(relays);
 	return processedEvents;
   } catch (error) {
-	logger.error("Error fetching NOSTR posts:", error);
+	logger.error('Error fetching NOSTR posts:', error);
 	pool.close(relays);
 	return [];
   }
@@ -239,19 +243,19 @@ async function fetchMastodonPosts(activeTab) {
   try {
 	for (let page = 0; page < maxPages; page++) {
 	  logger.info(`Fetching Mastodon posts page ${page + 1}`);
-	  
+
 	  const params = new URLSearchParams({
 		q: searchQuery,
 		type: 'statuses',
 		limit: postsPerPage.toString(),
-		...(maxId && { max_id: maxId })
+		...(maxId && { max_id: maxId }),
 	  });
 
 	  const response = await fetch(`${baseUrl}search?${params}`, {
 		method: 'GET',
 		headers: {
-		  'Authorization': `Bearer ${accessToken}`
-		}
+		  Authorization: `Bearer ${accessToken}`,
+		},
 	  });
 
 	  if (!response.ok) {
@@ -264,7 +268,7 @@ async function fetchMastodonPosts(activeTab) {
 		break;
 	  }
 
-	  const filteredPosts = data.statuses.filter(post => 
+	  const filteredPosts = data.statuses.filter((post) =>
 		searchPattern.test(post.content)
 	  );
 
@@ -277,7 +281,7 @@ async function fetchMastodonPosts(activeTab) {
 	  maxId = data.statuses[data.statuses.length - 1].id;
 	}
 
-	const processedPosts = allPosts.map(post => ({
+	const processedPosts = allPosts.map((post) => ({
 	  id: post.id,
 	  content: post.content,
 	  createdAt: post.created_at,
@@ -291,7 +295,7 @@ async function fetchMastodonPosts(activeTab) {
 	logger.info(`Processed ${processedPosts.length} Mastodon posts`);
 	return processedPosts;
   } catch (error) {
-	logger.error("Error fetching Mastodon posts:", error.message);
+	logger.error('Error fetching Mastodon posts:', error.message);
 	return [];
   }
 }
@@ -307,29 +311,33 @@ app.get('/api/feed', async (req, res) => {
 	const [blueskyFeed, nostrFeed, mastodonFeed] = await Promise.all([
 	  fetchBlueskyPosts(activeTab, preferredLanguages),
 	  fetchNostrPosts(activeTab),
-	  fetchMastodonPosts(activeTab)
+	  fetchMastodonPosts(activeTab),
 	]);
 
-	logger.info(`Sending response with ${blueskyFeed.length} Bluesky posts, ${nostrFeed.length} Nostr posts, and ${mastodonFeed.length} Mastodon posts`);
+	logger.info(
+	  `Sending response with ${blueskyFeed.length} Bluesky posts, ${nostrFeed.length} Nostr posts, and ${mastodonFeed.length} Mastodon posts`
+	);
 	res.json({ blueskyFeed, nostrFeed, mastodonFeed });
   } catch (error) {
 	logger.error('Error in /api/feed:', error);
-	res.status(500).json({ 
-	  error: 'Error fetching feed', 
+	res.status(500).json({
+	  error: 'Error fetching feed',
 	  details: error.message,
-	  stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+	  stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
 	});
   }
 });
 
-// Serve static files from the React app
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files from the React app in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/build')));
 
-// The "catchall" handler: for any request that doesn't
-// match one above, send back React's index.html file.
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+  // The "catchall" handler: for any request that doesn't
+  // match one above, send back React's index.html file.
+  app.get('*', (req, res) => {
+	res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+  });
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -337,6 +345,7 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke!');
 });
 
+// Start the server
 app.listen(port, () => {
   logger.info(`Server running on port ${port}`);
 });
