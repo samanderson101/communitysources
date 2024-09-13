@@ -97,3 +97,28 @@
 {"level":"info","message":"Server running on port 3001","service":"community-sources"}
 {"level":"info","message":"Server running on port 3001","service":"community-sources"}
 {"level":"error","message":"Error: ENOENT: no such file or directory, stat '/Users/samuelanderson/Community-Sources/server/src/public/index.html'","service":"community-sources"}
+{"level":"info","message":"Server running on port 3001","service":"community-sources"}
+{"level":"error","message":"Error: ENOENT: no such file or directory, stat '/Users/samuelanderson/Community-Sources/server/src/public/index.html'","service":"community-sources"}
+{"level":"error","message":"Error: ENOENT: no such file or directory, stat '/Users/samuelanderson/Community-Sources/server/src/public/index.html'","service":"community-sources"}
+{"level":"info","message":"Server running on port 3001","service":"community-sources"}
+{"level":"error","message":"Error: ENOENT: no such file or directory, stat '/Users/samuelanderson/Community-Sources/server/src/public/index.html'","service":"community-sources"}
+{"level":"info","message":"Server running on port 3001","service":"community-sources"}
+{"level":"error","message":"Error: ENOENT: no such file or directory, stat '/Users/samuelanderson/Community-Sources/server/src/public/index.html'","service":"community-sources"}
+{"level":"info","message":"Received request for tab 0 with languages en-US","service":"community-sources"}
+{"level":"info","message":"Fetching Bluesky posts for tab:","service":"community-sources"}
+{"level":"info","message":"Fetching Nostr posts for tab:","service":"community-sources"}
+{"level":"info","message":"Fetching Mastodon posts for tab:","service":"community-sources"}
+{"level":"info","message":"Fetching Mastodon posts page 1","service":"community-sources"}
+{"level":"info","message":"Received request for tab 0 with languages en-US","service":"community-sources"}
+{"level":"info","message":"Fetching Bluesky posts for tab:","service":"community-sources"}
+{"level":"info","message":"Fetching Nostr posts for tab:","service":"community-sources"}
+{"level":"info","message":"Fetching Mastodon posts for tab:","service":"community-sources"}
+{"level":"info","message":"Fetching Mastodon posts page 1","service":"community-sources"}
+{"level":"info","message":"Processed 0 Mastodon posts","service":"community-sources"}
+{"level":"error","message":"Error fetching Bluesky posts: agent.api.app.bsky.feed.getFeed is not a function","service":"community-sources","stack":"TypeError: agent.api.app.bsky.feed.getFeed is not a function\n    at fetchBlueskyPosts (/Users/samuelanderson/Community-Sources/server/src/server.js:108:49)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async Promise.all (index 0)\n    at async /Users/samuelanderson/Community-Sources/server/src/server.js:307:49"}
+{"level":"error","message":"Error fetching Bluesky posts: agent.api.app.bsky.feed.getFeed is not a function","service":"community-sources","stack":"TypeError: agent.api.app.bsky.feed.getFeed is not a function\n    at fetchBlueskyPosts (/Users/samuelanderson/Community-Sources/server/src/server.js:108:49)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async Promise.all (index 0)\n    at async /Users/samuelanderson/Community-Sources/server/src/server.js:307:49"}
+{"level":"info","message":"Processed 0 Mastodon posts","service":"community-sources"}
+{"level":"info","message":"Filtered 5 Nostr events","service":"community-sources"}
+{"level":"info","message":"Sending response with 0 Bluesky posts, 5 Nostr posts, and 0 Mastodon posts","service":"community-sources"}
+{"level":"info","message":"Filtered 4 Nostr events","service":"community-sources"}
+{"level":"info","message":"Sending response with 0 Bluesky posts, 4 Nostr posts, and 0 Mastodon posts","service":"community-sources"}

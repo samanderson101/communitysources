@@ -1,9 +1,11 @@
+// client/src/App.js
+
 import React, { useState, useEffect } from 'react';
 import { nip19 } from 'nostr-tools';
 import './App.css';
 import Screenshot from './screenshot.png';
 
-const API_URL = window.REACT_APP_CONFIG.API_URL || '/api';
+const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const LoadingIndicator = () => (
   <div className="loading-indicator">
@@ -19,7 +21,10 @@ const AgeConfirmationModal = ({ isVisible, onConfirm }) => {
         <h2>Welcome to Community Sources</h2>
         <h4>An effort to bring the best out of social media and promote citizen journalism.</h4>
         <img className="image" src={Screenshot} alt="Screenshot" />
-        <p>We encourage respectful behavior, but due to the unpredictable nature of content on social media we ask that only people 16 years or older use the app.</p>
+        <p>
+          We encourage respectful behavior, but due to the unpredictable nature of content on social
+          media, we ask that only people 16 years or older use the app.
+        </p>
         <button className="confirm-button" onClick={onConfirm}>
           Continue (I am 16 or older)
         </button>
@@ -40,7 +45,7 @@ const App = () => {
   const [enabledNetworks, setEnabledNetworks] = useState({
     nostr: true,
     bluesky: true,
-    mastodon: true
+    mastodon: true,
   });
 
   const preferredLanguages = navigator.language || 'en-US';
@@ -68,18 +73,20 @@ const App = () => {
         setFeed({ blueskyFeed: [], nostrFeed: [], mastodonFeed: [] });
 
         try {
-          const response = await fetch(`${API_URL}/feed?activeTab=${activeTab}&preferredLanguages=${preferredLanguages}`);
+          const response = await fetch(
+            `${API_URL}/feed?activeTab=${activeTab}&preferredLanguages=${preferredLanguages}`
+          );
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
           const data = await response.json();
           setFeed(data);
         } catch (error) {
-          console.error("Error fetching feeds:", error);
+          console.error('Error fetching feeds:', error);
           setErrors({
-            bluesky: "Failed to fetch Bluesky feed",
-            nostr: "Failed to fetch Nostr feed",
-            mastodon: "Failed to fetch Mastodon feed"
+            bluesky: 'Failed to fetch Bluesky feed',
+            nostr: 'Failed to fetch Nostr feed',
+            mastodon: 'Failed to fetch Mastodon feed',
           });
         } finally {
           setLoading(false);
@@ -87,7 +94,7 @@ const App = () => {
       };
       fetchFeed();
     }
-  }, [activeTab, preferredLanguages, currentPage]);
+  }, [activeTab, preferredLanguages, currentPage, API_URL]);
 
   const formatTimeAgo = (dateString) => {
     const date = new Date(dateString);
@@ -131,14 +138,16 @@ const App = () => {
       if (!facets || !Array.isArray(facets)) {
         return null;
       }
-  
+
       const uriLink = facets.reduce((link, facet) => {
         if (link) return link;
-        return facet.features?.find(feature => 
-          feature.$type === 'app.bsky.richtext.facet#link'
-        )?.uri || '';
+        return (
+          facet.features?.find(
+            (feature) => feature.$type === 'app.bsky.richtext.facet#link'
+          )?.uri || ''
+        );
       }, '');
-  
+
       return uriLink ? (
         <div className="embed-card">
           <a href={uriLink} target="_blank" rel="noopener noreferrer">
@@ -155,7 +164,7 @@ const App = () => {
   const renderNostrContent = (content) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const parts = content.split(urlRegex);
-    
+
     return (
       <>
         {parts.map((part, index) => {
@@ -179,9 +188,9 @@ const App = () => {
   const renderMastodonContent = (content) => {
     const urlRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
     const links = content.match(urlRegex) || [];
-    
+
     const textContent = content.replace(urlRegex, '');
-  
+
     return (
       <>
         <div dangerouslySetInnerHTML={{ __html: textContent }} />
@@ -200,26 +209,26 @@ const App = () => {
 
   const handleBookmark = (item) => {
     const newBookmarks = [...bookmarks];
-    const index = newBookmarks.findIndex(bookmark => bookmark.id === item.id);
-    
+    const index = newBookmarks.findIndex((bookmark) => bookmark.id === item.id);
+
     if (index === -1) {
       newBookmarks.push(item);
     } else {
       newBookmarks.splice(index, 1);
     }
-    
+
     setBookmarks(newBookmarks);
     localStorage.setItem('bookmarks', JSON.stringify(newBookmarks));
   };
 
   const isBookmarked = (item) => {
-    return bookmarks.some(bookmark => bookmark.id === item.id);
+    return bookmarks.some((bookmark) => bookmark.id === item.id);
   };
 
   const renderPost = (item, source) => {
     const bookmarkButton = (
-      <button 
-        onClick={() => handleBookmark(item)} 
+      <button
+        onClick={() => handleBookmark(item)}
         className={`bookmark-button ${isBookmarked(item) ? 'bookmarked' : ''}`}
       >
         {isBookmarked(item) ? '★' : '☆'}
@@ -236,8 +245,26 @@ const App = () => {
             {renderLink(item.post.facets, item.post.embed)}
             <div dangerouslySetInnerHTML={{ __html: item.markdown }} />
             <div className="row">
-              <a style={{marginRight: "auto", fontSize: "10pt"}} className="viewLink" href={`https://bsky.app/profile/${item.post.author.did}/post/${item.post.uri.split('/').pop()}`} target="_blank" rel="noopener noreferrer">by {item.post.author.displayName}</a>
-              <a style={{marginLeft: "auto"}} className="viewLink" href={`https://bsky.app/profile/${item.post.author.did}/post/${item.post.uri.split('/').pop()}`} target="_blank" rel="noopener noreferrer">
+              <a
+                style={{ marginRight: 'auto', fontSize: '10pt' }}
+                className="viewLink"
+                href={`https://bsky.app/profile/${item.post.author.did}/post/${
+                  item.post.uri.split('/').pop()
+                }`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                by {item.post.author.displayName}
+              </a>
+              <a
+                style={{ marginLeft: 'auto' }}
+                className="viewLink"
+                href={`https://bsky.app/profile/${item.post.author.did}/post/${
+                  item.post.uri.split('/').pop()
+                }`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 from 🦋Bluesky {tabNames[activeTab].split(' ')[1]}
               </a>
             </div>
@@ -250,10 +277,22 @@ const App = () => {
             <p>{formatTimeAgo(new Date(item.created_at * 1000).toISOString())}</p>
             <div>{renderNostrContent(item.content)}</div>
             <div className="row">
-              <a style={{marginRight: "auto", fontSize: "10pt"}} className="viewLink" href={`https://njump.me/${nip19.noteEncode(item.id)}`} target="_blank" rel="noopener noreferrer">
+              <a
+                style={{ marginRight: 'auto', fontSize: '10pt' }}
+                className="viewLink"
+                href={`https://njump.me/${nip19.noteEncode(item.id)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 by {nip19.npubEncode(item.pubkey).slice(0, 12)}...
               </a>
-              <a style={{marginLeft: "auto"}} className="viewLink" href={`https://njump.me/${nip19.noteEncode(item.id)}`} target="_blank" rel="noopener noreferrer">
+              <a
+                style={{ marginLeft: 'auto' }}
+                className="viewLink"
+                href={`https://njump.me/${nip19.noteEncode(item.id)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 from 🕊️NOSTR {tabNames[activeTab].split(' ')[1]}
               </a>
             </div>
@@ -266,10 +305,22 @@ const App = () => {
             <p>{formatTimeAgo(item.createdAt)}</p>
             {renderMastodonContent(item.content)}
             <div className="row">
-              <a style={{marginRight: "auto", fontSize: "10pt"}} className="viewLink" href={item.url} target="_blank" rel="noopener noreferrer">
+              <a
+                style={{ marginRight: 'auto', fontSize: '10pt' }}
+                className="viewLink"
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 by {item.account.displayName}
               </a>
-              <a style={{marginLeft: "auto"}} className="viewLink" href={item.url} target="_blank" rel="noopener noreferrer">
+              <a
+                style={{ marginLeft: 'auto' }}
+                className="viewLink"
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 from 🐘Mastodon {tabNames[activeTab].split(' ')[1]}
               </a>
             </div>
@@ -282,25 +333,40 @@ const App = () => {
 
   const tabNames = ['📈Sources', '🏛️Gov', '🪙Econ', '🧬Sci', '🍿Film', '🎙️Pod', '🎸Music'];
 
-  const filteredCombinedFeed = currentPage === 'main'
-    ? [
-        ...enabledNetworks.bluesky ? feed.blueskyFeed.map(item => ({ ...item, source: 'bluesky' })) : [],
-        ...enabledNetworks.nostr ? feed.nostrFeed.map(item => ({ ...item, source: 'nostr' })) : [],
-        ...enabledNetworks.mastodon ? feed.mastodonFeed.map(item => ({ ...item, source: 'mastodon' })) : []
-      ].sort((a, b) => {
-        const dateA = new Date(a.source === 'nostr' ? a.created_at * 1000 : a.post?.indexedAt || a.createdAt);
-        const dateB = new Date(b.source === 'nostr' ? b.created_at * 1000 : b.post?.indexedAt || b.createdAt);
-        return dateB - dateA;
-      })
-    : bookmarks;
+  const filteredCombinedFeed =
+    currentPage === 'main'
+      ? [
+          ...(enabledNetworks.bluesky
+            ? feed.blueskyFeed.map((item) => ({ ...item, source: 'bluesky' }))
+            : []),
+          ...(enabledNetworks.nostr
+            ? feed.nostrFeed.map((item) => ({ ...item, source: 'nostr' }))
+            : []),
+          ...(enabledNetworks.mastodon
+            ? feed.mastodonFeed.map((item) => ({ ...item, source: 'mastodon' }))
+            : []),
+        ].sort((a, b) => {
+          const dateA = new Date(
+            a.source === 'nostr'
+              ? a.created_at * 1000
+              : a.post?.indexedAt || a.createdAt
+          );
+          const dateB = new Date(
+            b.source === 'nostr'
+              ? b.created_at * 1000
+              : b.post?.indexedAt || b.createdAt
+          );
+          return dateB - dateA;
+        })
+      : bookmarks;
 
   const handleModalOpen = () => setIsModalOpen(true);
   const handleModalClose = () => setIsModalOpen(false);
 
   const toggleNetwork = (network) => {
-    setEnabledNetworks(prev => ({
+    setEnabledNetworks((prev) => ({
       ...prev,
-      [network]: !prev[network]
+      [network]: !prev[network],
     }));
   };
 
@@ -314,7 +380,11 @@ const App = () => {
       </button>
       <div className="tooltip">
         <p>{description}</p>
-        <a href={`https://${network === 'nostr' ? 'nostr.org' : network === 'bluesky' ? 'bsky.social/about' : 'joinmastodon.org'}`} target="_blank" rel="noopener noreferrer">
+        <a
+          href={`https://${network === 'nostr' ? 'nostr.org' : network === 'bluesky' ? 'bsky.social/about' : 'joinmastodon.org'}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           Learn more
         </a>
       </div>
@@ -328,78 +398,103 @@ const App = () => {
         <div className={`App ${!loading ? 'fade-in' : ''}`}>
           <div className="appBar">
             <div className="navigation">
-              <button onClick={() => setCurrentPage('main')} className={currentPage === 'main' ? 'active' : ''}>
+              <button
+                onClick={() => setCurrentPage('main')}
+                className={currentPage === 'main' ? 'active' : ''}
+              >
                 🏠Home
               </button>
-              <button onClick={() => setCurrentPage('bookmarks')} className={currentPage === 'bookmarks' ? 'active' : ''}>
+              <button
+                onClick={() => setCurrentPage('bookmarks')}
+                className={currentPage === 'bookmarks' ? 'active' : ''}
+              >
                 📎Saved
               </button>
             </div>
-            <div><h1 className="appTitle">Community Sources</h1></div>
+            <div>
+              <h1 className="appTitle">Community Sources</h1>
+            </div>
             <div className="networks">
               <NetworkButton
                 network="nostr"
                 icon="🕊️"
                 description="Nostr is a decentralized social network built on open protocols."
               />
-             <NetworkButton
-                             network="bluesky"
-                             icon="🦋"
-                             description="Bluesky is a decentralized social network focused on a new approach to social media."
-                           />
-                           <NetworkButton
-                             network="mastodon"
-                             icon="🐘"
-                             description="Mastodon is a free, open-source social network server."
-                           />
-                         </div>
-                       </div>
-                       
-                       {currentPage === 'main' && (
-                         <div className="tabs">
-                           {tabNames.map((tab, index) => (
-                             <button key={index} onClick={() => setActiveTab(index)} className={activeTab === index ? 'active' : ''}>
-                               {tab}
-                             </button>
-                           ))}
-                         </div>
-                       )}
-             
-                       <div className="feed">
-                         {loading && currentPage === 'main' && <LoadingIndicator />}
-                         {currentPage === 'main' && errors.bluesky && <div className="error-message">Error loading Bluesky feed: {errors.bluesky}</div>}
-                         {currentPage === 'main' && errors.nostr && <div className="error-message">Error loading Nostr feed: {errors.nostr}</div>}
-                         {currentPage === 'main' && errors.mastodon && <div className="error-message">Error loading Mastodon feed: {errors.mastodon}</div>}
-                         {filteredCombinedFeed.map((item) => renderPost(item, item.source))}
-                         {!loading && filteredCombinedFeed.length === 0 && <div className="no-posts">No posts available</div>}
-                       </div>
-             
-                       <div className="fab" onClick={handleModalOpen}>
-                         +
-                       </div>
-             
-                       {isModalOpen && (
-                         <div className="modal">
-                           <div className="modal-content">
-                             <h2>Post to Community Sources</h2>
-                             <p>
-                               by posting on Bluesky and including a cited link from one of the following sources. Your post will automatically appear in our custom feeds.
-                             </p>
-                             <div className="source-links">
-                               <button onClick={() => window.open('https://bsky.app', '_blank')}>
-                                 🦋Bluesky
-                               </button>
-                             </div>
-                             <button className="close" onClick={handleModalClose}>
-                               Close
-                             </button>
-                           </div>
-                         </div>
-                       )}
-                     </div>
-                   )}
-                 </div>
-               );
-             };
-             
-             export default App;
+              <NetworkButton
+                network="bluesky"
+                icon="🦋"
+                description="Bluesky is a decentralized social network focused on a new approach to social media."
+              />
+              <NetworkButton
+                network="mastodon"
+                icon="🐘"
+                description="Mastodon is a free, open-source social network server."
+              />
+            </div>
+          </div>
+
+          {currentPage === 'main' && (
+            <div className="tabs">
+              {tabNames.map((tab, index) => (
+                <button
+                  key={index}
+                  onClick={() => setActiveTab(index)}
+                  className={activeTab === index ? 'active' : ''}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="feed">
+            {loading && currentPage === 'main' && <LoadingIndicator />}
+            {currentPage === 'main' && errors.bluesky && (
+              <div className="error-message">
+                Error loading Bluesky feed: {errors.bluesky}
+              </div>
+            )}
+            {currentPage === 'main' && errors.nostr && (
+              <div className="error-message">Error loading Nostr feed: {errors.nostr}</div>
+            )}
+            {currentPage === 'main' && errors.mastodon && (
+              <div className="error-message">
+                Error loading Mastodon feed: {errors.mastodon}
+              </div>
+            )}
+            {filteredCombinedFeed.map((item) => renderPost(item, item.source))}
+            {!loading && filteredCombinedFeed.length === 0 && (
+              <div className="no-posts">No posts available</div>
+            )}
+          </div>
+
+          <div className="fab" onClick={handleModalOpen}>
+            +
+          </div>
+
+          {isModalOpen && (
+            <div className="modal">
+              <div className="modal-content">
+                <h2>Post to Community Sources</h2>
+                <p>
+                  By posting on Bluesky and including a cited link from one of the following
+                  sources, your post will automatically appear in our custom feeds.
+                </p>
+                <div className="source-links">
+                  <button onClick={() => window.open('https://bsky.app', '_blank')}>
+                    🦋Bluesky
+                  </button>
+                </div>
+                <button className="close" onClick={handleModalClose}>
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
