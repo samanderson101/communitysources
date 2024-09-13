@@ -12,6 +12,7 @@ const winston = require('winston');
 
 const app = express();
 const port = process.env.PORT || 3001;
+const host = '0.0.0.0';
 
 // Logging configuration
 const logger = winston.createLogger({
@@ -346,6 +347,6 @@ app.use((err, req, res, next) => {
 });
 
 // Start the server
-app.listen(port, () => {
-  logger.info(`Server running on port ${port}`);
+app.listen(port, host, () => {
+  logger.info(`Server running on http://${host}:${port}`);
 });
