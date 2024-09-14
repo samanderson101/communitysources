@@ -1,4 +1,4 @@
-// server/server.js
+// server/src/server.js
 
 require('dotenv').config();
 const express = require('express');
@@ -9,6 +9,7 @@ const { SimplePool, nip19 } = require('nostr-tools');
 const NodeCache = require('node-cache');
 const rateLimit = require('express-rate-limit');
 const winston = require('winston');
+const fetch = require('node-fetch'); // Ensure you have node-fetch installed
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -331,12 +332,12 @@ app.get('/api/feed', async (req, res) => {
 
 // Serve static files from the React app in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/build')));
+  app.use(express.static(path.join(__dirname, '../../client/build')));
 
   // The "catchall" handler: for any request that doesn't
   // match one above, send back React's index.html file.
   app.get('*', (req, res) => {
-	res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+	res.sendFile(path.join(__dirname, '../../client/build', 'index.html'));
   });
 }
 
