@@ -444,6 +444,39 @@ button:hover {
   }
 }
 
+/* Icon alignment helpers */
+.tabs button,
+.navigation button,
+.network-button,
+.source-links button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.source-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tab-icon,
+.nav-icon,
+.network-icon,
+.source-icon {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.source-icon {
+  font-size: 1em;
+}
+
+.fab svg {
+  width: 24px;
+  height: 24px;
+}
+
 /* Fade-in animation for the app content */
 .fade-in {
   animation: fadeIn 1s ease-in-out forwards;

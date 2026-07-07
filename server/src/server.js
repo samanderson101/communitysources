@@ -94,7 +94,7 @@ const nostrSearchPatterns = [
 ].map((regex) => new RegExp(regex.source, 'i'));
 
 async function fetchBlueskyPosts(activeTab, preferredLanguages) {
-  logger.info('Fetching Bluesky posts for tab:', activeTab);
+  logger.info(`Fetching Bluesky posts for tab: ${activeTab}`);
 
   if (!getToken()) {
 	logger.warn('Rate limit exceeded for Bluesky');
@@ -159,7 +159,7 @@ async function fetchBlueskyPosts(activeTab, preferredLanguages) {
 }
 
 async function fetchNostrPosts(activeTab) {
-  logger.info('Fetching Nostr posts for tab:', activeTab);
+  logger.info(`Fetching Nostr posts for tab: ${activeTab}`);
 
   const cacheKey = `nostr_${activeTab}`;
   const cachedResult = nostrCache.get(cacheKey);
@@ -229,7 +229,7 @@ async function fetchNostrPosts(activeTab) {
 }
 
 async function fetchMastodonPosts(activeTab) {
-  logger.info('Fetching Mastodon posts for tab:', activeTab);
+  logger.info(`Fetching Mastodon posts for tab: ${activeTab}`);
 
   const accessToken = process.env.MASTODON_ACCESS_TOKEN;
   const baseUrl = 'https://mastodon.social/api/v2/';
@@ -303,8 +303,11 @@ async function fetchMastodonPosts(activeTab) {
 }
 
 // API Routes
+const MAX_TAB_INDEX = nostrSearchPatterns.length - 1;
+
 app.get('/api/feed', async (req, res) => {
-  const activeTab = parseInt(req.query.activeTab) || 0;
+  const requestedTab = parseInt(req.query.activeTab, 10) || 0;
+  const activeTab = Math.min(Math.max(requestedTab, 0), MAX_TAB_INDEX);
   const preferredLanguages = req.query.preferredLanguages || 'en-US';
 
   logger.info(`Received request for tab ${activeTab} with languages ${preferredLanguages}`);

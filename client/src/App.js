@@ -2,10 +2,57 @@
 
 import React, { useState, useEffect } from 'react';
 import { nip19 } from 'nostr-tools';
+import {
+  LuHouse,
+  LuBookmark,
+  LuBookmarkCheck,
+  LuPlus,
+  LuTrendingUp,
+  LuLandmark,
+  LuCoins,
+  LuDna,
+  LuFilm,
+  LuMic,
+  LuMusic,
+} from 'react-icons/lu';
+import { SiBluesky, SiMastodon } from 'react-icons/si';
+import { FaDove } from 'react-icons/fa6';
 import './App.css';
 import Screenshot from './screenshot.png';
 
 const API_URL = process.env.REACT_APP_API_URL || '/api';
+
+const TABS = [
+  { label: 'Sources', Icon: LuTrendingUp },
+  { label: 'Gov', Icon: LuLandmark },
+  { label: 'Econ', Icon: LuCoins },
+  { label: 'Sci', Icon: LuDna },
+  { label: 'Film', Icon: LuFilm },
+  { label: 'Pod', Icon: LuMic },
+  { label: 'Music', Icon: LuMusic },
+];
+
+const NETWORKS = {
+  nostr: {
+    label: 'Nostr',
+    Icon: FaDove,
+    url: 'https://nostr.org',
+    description: 'Nostr is a decentralized social network built on open protocols.',
+  },
+  bluesky: {
+    label: 'Bluesky',
+    Icon: SiBluesky,
+    url: 'https://bsky.social/about',
+    description:
+      'Bluesky is a decentralized social network focused on a new approach to social media.',
+  },
+  mastodon: {
+    label: 'Mastodon',
+    Icon: SiMastodon,
+    url: 'https://joinmastodon.org',
+    description: 'Mastodon is a free, open-source social network server.',
+  },
+};
 
 const LoadingIndicator = () => (
   <div className="loading-indicator">
@@ -28,6 +75,38 @@ const AgeConfirmationModal = ({ isVisible, onConfirm }) => {
         <button className="confirm-button" onClick={onConfirm}>
           Continue (I am 16 or older)
         </button>
+      </div>
+    </div>
+  );
+};
+
+const SourceTag = ({ network, category }) => {
+  const { label, Icon } = NETWORKS[network];
+  return (
+    <span className="source-tag">
+      <Icon className="source-icon" aria-hidden="true" />
+      {label}
+      {category ? ` · ${category}` : ''}
+    </span>
+  );
+};
+
+const NetworkButton = ({ network, enabled, onToggle }) => {
+  const { label, Icon, url, description } = NETWORKS[network];
+  return (
+    <div className="network-button-container">
+      <button
+        onClick={() => onToggle(network)}
+        className={`network-button ${enabled ? 'active' : ''}`}
+        aria-pressed={enabled}
+      >
+        <Icon className="network-icon" aria-hidden="true" /> {label}
+      </button>
+      <div className="tooltip">
+        <p>{description}</p>
+        <a href={url} target="_blank" rel="noopener noreferrer">
+          Learn more
+        </a>
       </div>
     </div>
   );
@@ -56,8 +135,13 @@ const App = () => {
       setIsAgeConfirmed(true);
     }
 
-    const savedBookmarks = JSON.parse(localStorage.getItem('bookmarks')) || [];
-    setBookmarks(savedBookmarks);
+    try {
+      const savedBookmarks = JSON.parse(localStorage.getItem('bookmarks')) || [];
+      setBookmarks(savedBookmarks);
+    } catch (error) {
+      console.error('Failed to parse saved bookmarks:', error);
+      setBookmarks([]);
+    }
   }, []);
 
   const handleConfirmAge = () => {
@@ -66,34 +150,43 @@ const App = () => {
   };
 
   useEffect(() => {
-    if (currentPage === 'main') {
-      const fetchFeed = async () => {
-        setLoading(true);
-        setErrors({ bluesky: null, nostr: null, mastodon: null });
-        setFeed({ blueskyFeed: [], nostrFeed: [], mastodonFeed: [] });
+    if (currentPage !== 'main') return;
 
-        try {
-          const response = await fetch(
-            `${API_URL}/feed?activeTab=${activeTab}&preferredLanguages=${preferredLanguages}`
-          );
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          const data = await response.json();
-          setFeed(data);
-        } catch (error) {
-          console.error('Error fetching feeds:', error);
-          setErrors({
-            bluesky: 'Failed to fetch Bluesky feed',
-            nostr: 'Failed to fetch Nostr feed',
-            mastodon: 'Failed to fetch Mastodon feed',
-          });
-        } finally {
+    const controller = new AbortController();
+
+    const fetchFeed = async () => {
+      setLoading(true);
+      setErrors({ bluesky: null, nostr: null, mastodon: null });
+      setFeed({ blueskyFeed: [], nostrFeed: [], mastodonFeed: [] });
+
+      try {
+        const response = await fetch(
+          `${API_URL}/feed?activeTab=${activeTab}&preferredLanguages=${preferredLanguages}`,
+          { signal: controller.signal }
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setFeed(data);
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        console.error('Error fetching feeds:', error);
+        setErrors({
+          bluesky: 'Failed to fetch Bluesky feed',
+          nostr: 'Failed to fetch Nostr feed',
+          mastodon: 'Failed to fetch Mastodon feed',
+        });
+      } finally {
+        if (!controller.signal.aborted) {
           setLoading(false);
         }
-      };
-      fetchFeed();
-    }
+      }
+    };
+
+    fetchFeed();
+
+    return () => controller.abort();
   }, [activeTab, preferredLanguages, currentPage]);
 
   const formatTimeAgo = (dateString) => {
@@ -207,9 +300,21 @@ const App = () => {
     );
   };
 
+  const getItemId = (item) => {
+    switch (item.source) {
+      case 'bluesky':
+        return item.post?.uri;
+      case 'nostr':
+      case 'mastodon':
+      default:
+        return item.id;
+    }
+  };
+
   const handleBookmark = (item) => {
+    const itemId = getItemId(item);
     const newBookmarks = [...bookmarks];
-    const index = newBookmarks.findIndex((bookmark) => bookmark.id === item.id);
+    const index = newBookmarks.findIndex((bookmark) => getItemId(bookmark) === itemId);
 
     if (index === -1) {
       newBookmarks.push(item);
@@ -222,18 +327,24 @@ const App = () => {
   };
 
   const isBookmarked = (item) => {
-    return bookmarks.some((bookmark) => bookmark.id === item.id);
+    const itemId = getItemId(item);
+    return bookmarks.some((bookmark) => getItemId(bookmark) === itemId);
   };
 
   const renderPost = (item, source) => {
+    const bookmarked = isBookmarked(item);
     const bookmarkButton = (
       <button
         onClick={() => handleBookmark(item)}
-        className={`bookmark-button ${isBookmarked(item) ? 'bookmarked' : ''}`}
+        className={`bookmark-button ${bookmarked ? 'bookmarked' : ''}`}
+        aria-label={bookmarked ? 'Remove bookmark' : 'Add bookmark'}
+        title={bookmarked ? 'Remove bookmark' : 'Add bookmark'}
       >
-        {isBookmarked(item) ? '★' : '☆'}
+        {bookmarked ? <LuBookmarkCheck /> : <LuBookmark />}
       </button>
     );
+
+    const category = TABS[activeTab]?.label;
 
     switch (source) {
       case 'bluesky':
@@ -265,7 +376,7 @@ const App = () => {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                from 🦋Bluesky {tabNames[activeTab].split(' ')[1]}
+                from <SourceTag network="bluesky" category={category} />
               </a>
             </div>
           </div>
@@ -293,7 +404,7 @@ const App = () => {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                from 🕊️NOSTR {tabNames[activeTab].split(' ')[1]}
+                from <SourceTag network="nostr" category={category} />
               </a>
             </div>
           </div>
@@ -321,7 +432,7 @@ const App = () => {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                from 🐘Mastodon {tabNames[activeTab].split(' ')[1]}
+                from <SourceTag network="mastodon" category={category} />
               </a>
             </div>
           </div>
@@ -330,8 +441,6 @@ const App = () => {
         return null;
     }
   };
-
-  const tabNames = ['📈Sources', '🏛️Gov', '🪙Econ', '🧬Sci', '🍿Film', '🎙️Pod', '🎸Music'];
 
   const filteredCombinedFeed =
     currentPage === 'main'
@@ -370,27 +479,6 @@ const App = () => {
     }));
   };
 
-  const NetworkButton = ({ network, icon, description }) => (
-    <div className="network-button-container">
-      <button
-        onClick={() => toggleNetwork(network)}
-        className={`network-button ${enabledNetworks[network] ? 'active' : ''}`}
-      >
-        {icon} {network.charAt(0).toUpperCase() + network.slice(1)}
-      </button>
-      <div className="tooltip">
-        <p>{description}</p>
-        <a
-          href={`https://${network === 'nostr' ? 'nostr.org' : network === 'bluesky' ? 'bsky.social/about' : 'joinmastodon.org'}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn more
-        </a>
-      </div>
-    </div>
-  );
-
   return (
     <div className="App">
       <AgeConfirmationModal isVisible={!isAgeConfirmed} onConfirm={handleConfirmAge} />
@@ -402,13 +490,13 @@ const App = () => {
                 onClick={() => setCurrentPage('main')}
                 className={currentPage === 'main' ? 'active' : ''}
               >
-                🏠Home
+                <LuHouse className="nav-icon" aria-hidden="true" /> Home
               </button>
               <button
                 onClick={() => setCurrentPage('bookmarks')}
                 className={currentPage === 'bookmarks' ? 'active' : ''}
               >
-                📎Saved
+                <LuBookmark className="nav-icon" aria-hidden="true" /> Saved
               </button>
             </div>
             <div>
@@ -417,33 +505,36 @@ const App = () => {
             <div className="networks">
               <NetworkButton
                 network="nostr"
-                icon="🕊️"
-                description="Nostr is a decentralized social network built on open protocols."
+                enabled={enabledNetworks.nostr}
+                onToggle={toggleNetwork}
               />
               <NetworkButton
                 network="bluesky"
-                icon="🦋"
-                description="Bluesky is a decentralized social network focused on a new approach to social media."
+                enabled={enabledNetworks.bluesky}
+                onToggle={toggleNetwork}
               />
               <NetworkButton
                 network="mastodon"
-                icon="🐘"
-                description="Mastodon is a free, open-source social network server."
+                enabled={enabledNetworks.mastodon}
+                onToggle={toggleNetwork}
               />
             </div>
           </div>
 
           {currentPage === 'main' && (
             <div className="tabs">
-              {tabNames.map((tab, index) => (
-                <button
-                  key={index}
-                  onClick={() => setActiveTab(index)}
-                  className={activeTab === index ? 'active' : ''}
-                >
-                  {tab}
-                </button>
-              ))}
+              {TABS.map((tab, index) => {
+                const TabIcon = tab.Icon;
+                return (
+                  <button
+                    key={index}
+                    onClick={() => setActiveTab(index)}
+                    className={activeTab === index ? 'active' : ''}
+                  >
+                    <TabIcon className="tab-icon" aria-hidden="true" /> {tab.label}
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -468,8 +559,8 @@ const App = () => {
             )}
           </div>
 
-          <div className="fab" onClick={handleModalOpen}>
-            +
+          <div className="fab" onClick={handleModalOpen} role="button" aria-label="Post">
+            <LuPlus aria-hidden="true" />
           </div>
 
           {isModalOpen && (
@@ -482,7 +573,7 @@ const App = () => {
                 </p>
                 <div className="source-links">
                   <button onClick={() => window.open('https://bsky.app', '_blank')}>
-                    🦋Bluesky
+                    <SiBluesky className="network-icon" aria-hidden="true" /> Bluesky
                   </button>
                 </div>
                 <button className="close" onClick={handleModalClose}>
